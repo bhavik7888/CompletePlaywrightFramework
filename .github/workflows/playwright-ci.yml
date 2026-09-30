@@ -6,11 +6,11 @@ on:
   pull_request:
     branches: [ main, master ]
   schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:
+    - cron: '0 0 * * *' # Midnight health-check smoke run
+  workflow_dispatch:   # Allows manual execution triggers from the GitHub UI
 
 permissions:
-  contents: write
+  contents: write      # Crucial for publishing Allure Report history to the gh-pages branch
   pages: write
   id-token: write
 
@@ -19,119 +19,102 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
-    env:
-      SAUCE_URL: https://saucedemo.com
-      SAUCE_STANDARD_USER: ${{ secrets.SAUCE_STANDARD_USER }}
-      SAUCE_PROBLEM_USER: ${{ secrets.SAUCE_PROBLEM_USER }}
-      SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
-
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
 
-      - name: Set up Node.js Environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: 'npm'
+    - name: Set up Node.js Environment
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+        cache: 'npm'
 
-      - name: Install Project Dependencies
-        run: npm ci
+    - name: Install Project Dependencies
+      run: npm ci
 
-      - name: Install Playwright System Browsers
-        run: npx playwright install --with-deps
+    - name: Install Playwright System Browsers
+      run: npx playwright install --with-deps
 
-      - name: Run E2E Automated Regressions Suite
-        run: npm run test:all
+    - name: Run E2E Automated Regressions Suite
+      run: npx playwright test
 
-      - name: Install Allure CLI
-        if: always()
-        run: npm install -D allure-commandline
+    # --- ADVANCED DASHBOARD REPORTING PIPELINE ---
+    - name: Fetch Allure Generation History
+      if: always()
+      uses: actions/checkout@v4
+      continue-on-error: true
+      with:
+        ref: gh-pages
+        path: gh-pages
 
-      - name: Fetch Allure Generation History
-        if: always()
-        continue-on-error: true
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages
+    - name: Compile Unified Allure Results Matrix
+      if: always()
+      run: |
+        npm run allure:generate
+        # Preserves older historical run statistics inside the new build view
+        if [ -d "gh-pages/history" ]; then cp -r gh-pages/history allure-report/; fi
 
-      - name: Compile Unified Allure Results Matrix
-        if: always()
-        run: |
-          npm run allure:generate
-          if [ -d "gh-pages/history" ]; then
-            cp -r gh-pages/history allure-report/
-          fi
+    - name: Deploy Live Allure Dashboard Report to GitHub Pages
+      if: always() && hashFiles('allure-report/**') != ''
+      uses: actions/upload-pages-artifact@v3
+      with:
+            path: ./allure-report
 
-      - name: Upload Allure Artifact for Pages
-        if: always() && hashFiles('allure-report/**') != ''
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./allure-report
+    - name: Deploy to GitHub Pages
+      if: always() && hashFiles('allure-report/**') != ''
+      uses: actions/deploy-pages@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy-pages:
-    needs: automation-execution
-    if: ${{ needs.automation-execution.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  notify-teams:
-    needs: automation-execution
-    if: ${{ failure() && secrets.TEAMS_WEBHOOK_URL != '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dispatch Rich MS Teams Alert on Failure
-        run: |
-          curl -H "Content-Type: application/json" \
-          -d '{
-            "type": "message",
-            "attachments": [
-              {
-                "contentType": "application/vnd.microsoft.card.adaptive",
-                "content": {
-                  "type": "AdaptiveCard",
-                  "version": "1.4",
-                  "body": [
-                    {
-                      "type": "TextBlock",
-                      "text": "🚨 Playwright E2E Regression Failed 🚨",
-                      "weight": "Bolder",
-                      "size": "Medium",
-                      "color": "Attention"
-                    },
-                    {
-                      "type": "FactSet",
-                      "facts": [
-                        { "title": "Repository:", "value": "${{ github.repository }}" },
-                        { "title": "Branch:", "value": "${{ github.ref_name }}" },
-                        { "title": "Triggered By:", "value": "@${{ github.actor }}" },
-                        { "title": "Environment:", "value": "Production / Shadow Staging" }
-                      ]
-                    },
-                    {
-                      "type": "TextBlock",
-                      "text": "Review failing test artifacts and the workflow logs for the root cause.",
-                      "wrap": true
-                    }
-                  ],
-                  "actions": [
-                    {
-                      "type": "Action.OpenUrl",
-                      "title": "🔍 View GitHub Workflow Run",
-                      "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    }
-                  ]
-                }
+    # --- MS TEAMS INTEGRATION NOTIFICATIONS LAYER ---
+    - name: Dispatch Rich MS Teams Alert on Failure
+      if: failure() # Fires strictly if a test fails in the step above
+      run: |
+        curl -H "Content-Type: application/json" \
+        -d '{
+          "type": "message",
+          "attachments": [
+            {
+              "contentType": "application/vnd.microsoft.card.adaptive",
+              "content": {
+                "type": "AdaptiveCard",
+                "version": "1.4",
+                "body": [
+                  {
+                    "type": "TextBlock",
+                    "text": "🚨 Playwright E2E Regression Failed 🚨",
+                    "weight": "Bolder",
+                    "size": "Medium",
+                    "color": "Attention"
+                  },
+                  {
+                    "type": "FactSet",
+                    "facts": [
+                      { "title": "Repository:", "value": "\${{ github.repository }}" },
+                      { "title": "Branch:", "value": "`${{ github.ref_name }}`" },
+                      { "title": "Triggered By:", "value": "@\${{ github.actor }}" },
+                      { "title": "Environment:", "value": "Production / Shadow Staging" }
+                    ]
+                  },
+                  {
+                    "type": "TextBlock",
+                    "text": "Action items required: Review failing step visual snapshots, traces, or network interceptions in the artifacts below.",
+                    "wrap": true
+                  }
+                ],
+                "actions": [
+                  {
+                    "type": "Action.OpenUrl",
+                    "title": "🔍 View GitHub Workflow Run",
+                    "url": "https://github.com github.repository /actions/runs/{{ github.run_id }}"
+                  },
+                  {
+                    "type": "Action.OpenUrl",
+                    "title": "📊 Open Allure Dashboard",
+                    "url": "https://\({{ github.repository_owner }}.github.io/\){{ github.event.repository.name }}/"
+                  }
+                ]
               }
-            ]
-          }' "${{ secrets.TEAMS_WEBHOOK_URL }}"
+            }
+          ]
+        }' \${{ secrets.TEAMS_WEBHOOK_URL }}
