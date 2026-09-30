@@ -36,11 +36,6 @@ jobs:
       run: npx playwright install --with-deps
 
     - name: Run E2E Automated Regressions Suite
-      env:
-        SAUCE_URL: https://saucedemo.com
-        SAUCE_STANDARD_USER: \${{ secrets.SAUCE_STANDARD_USER }}
-        SAUCE_PROBLEM_USER:  \${{ secrets.SAUCE_PROBLEM_USER }}
-        SAUCE_PASSWORD:      \${{ secrets.SAUCE_PASSWORD }}
       run: npx playwright test
 
     # --- ADVANCED DASHBOARD REPORTING PIPELINE ---
