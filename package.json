@@ -1,0 +1,25 @@
+{
+  "name": "completeplaywrightframework",
+  "version": "1.0.0",
+  "description": "Enterprise-grade Playwright Automation Framework showcasing total feature coverage.",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rimraf test-results playwright-report .auth",
+    "test:all": "playwright test",
+    "test:staging": "cross-env ENV=staging playwright test",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "ai:init": "npx playwright init-agents --loop=vscode",
+    "test:visual:update": "playwright test --update-snapshots",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.3",
+    "allure-playwright": "^3.13.0",
+    "dotenv": "^18.0.4"
+  }
+}
