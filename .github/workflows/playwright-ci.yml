@@ -41,7 +41,6 @@ jobs:
         SAUCE_STANDARD_USER: \${{ secrets.SAUCE_STANDARD_USER }}
         SAUCE_PROBLEM_USER:  \${{ secrets.SAUCE_PROBLEM_USER }}
         SAUCE_PASSWORD:      \${{ secrets.SAUCE_PASSWORD }}
-      # run: npm run test:all
       run: npx playwright test
 
     # --- ADVANCED DASHBOARD REPORTING PIPELINE ---
