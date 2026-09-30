@@ -55,12 +55,16 @@ jobs:
         if [ -d "gh-pages/history" ]; then cp -r gh-pages/history allure-report/; fi
 
     - name: Deploy Live Allure Dashboard Report to GitHub Pages
-      if: always()
-      uses: peaceiris/actions-gh-pages@v4
+      if: always() && hashFiles('allure-report/**') != ''
+      uses: actions/upload-pages-artifact@v3
       with:
-        github_token: \${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./allure-report
-        keep_files: true
+            path: ./allure-report
+
+    - name: Deploy to GitHub Pages
+      if: always() && hashFiles('allure-report/**') != ''
+      uses: actions/deploy-pages@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     # --- MS TEAMS INTEGRATION NOTIFICATIONS LAYER ---
     - name: Dispatch Rich MS Teams Alert on Failure
