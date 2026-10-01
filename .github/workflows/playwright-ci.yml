@@ -62,7 +62,7 @@ jobs:
 
     # --- MS TEAMS INTEGRATION NOTIFICATIONS LAYER ---
     - name: Dispatch Rich MS Teams Alert
-      if: failure()
+      if: always()
       env:
         TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
       run: |
