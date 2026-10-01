@@ -61,8 +61,8 @@ jobs:
             path: ./allure-report
 
     # --- MS TEAMS INTEGRATION NOTIFICATIONS LAYER ---
-    - name: Dispatch Rich MS Teams Alert on Failure
-      if: failure() # Fires strictly if a test fails in the step above
+    - name: Dispatch Rich MS Teams Alert # on Failure
+      if: always() # Fires strictly if a test fails in the step above
       run: |
         curl -H "Content-Type: application/json" \
         -d '{
