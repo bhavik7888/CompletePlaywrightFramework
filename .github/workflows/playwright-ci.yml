@@ -64,7 +64,7 @@ jobs:
     - name: Dispatch Rich MS Teams Alert
       if: always()
       env:
-        TEAMS_WEBHOOK_URL: https://default37709cfbf3b24648aea19c828a8861.47.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/30/workflows/0a696deb8bd346eb8e6019f047325c9e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=CRqEDavPFNzcG4u-zGrgyhP6JE3Aumis3Cq3CwYlzR0
+        TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
       run: |
         curl --fail-with-body --silent --show-error --request POST \
         -H "Content-Type: application/json" \
@@ -114,7 +114,7 @@ jobs:
               }
             }
           ]
-        }' 
+        }' "$TEAMS_WEBHOOK_URL"
 
   deploy-pages:
     needs: automation-execution
