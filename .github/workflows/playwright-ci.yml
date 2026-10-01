@@ -61,11 +61,14 @@ jobs:
             path: ./allure-report
 
     # --- MS TEAMS INTEGRATION NOTIFICATIONS LAYER ---
-    - name: Dispatch Rich MS Teams Alert # on Failure
-      if: always() # Fires strictly if a test fails in the step above
+    - name: Dispatch Rich MS Teams Alert
+      if: failure()
+      env:
+        TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
       run: |
-        curl -H "Content-Type: application/json" \
-        -d '{
+        curl --fail-with-body --silent --show-error --request POST \
+        -H "Content-Type: application/json" \
+        --data-raw '{
           "type": "message",
           "attachments": [
             {
@@ -84,9 +87,9 @@ jobs:
                   {
                     "type": "FactSet",
                     "facts": [
-                      { "title": "Repository:", "value": "\${{ github.repository }}" },
-                      { "title": "Branch:", "value": "`${{ github.ref_name }}`" },
-                      { "title": "Triggered By:", "value": "@\${{ github.actor }}" },
+                      { "title": "Repository:", "value": "${{ github.repository }}" },
+                      { "title": "Branch:", "value": "${{ github.ref_name }}" },
+                      { "title": "Triggered By:", "value": "@${{ github.actor }}" },
                       { "title": "Environment:", "value": "Production / Shadow Staging" }
                     ]
                   },
@@ -100,18 +103,18 @@ jobs:
                   {
                     "type": "Action.OpenUrl",
                     "title": "🔍 View GitHub Workflow Run",
-                    "url": "https://github.com github.repository /actions/runs/{{ github.run_id }}"
+                    "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                   },
                   {
                     "type": "Action.OpenUrl",
                     "title": "📊 Open Allure Dashboard",
-                    "url": "https://\({{ github.repository_owner }}.github.io/\){{ github.event.repository.name }}/"
+                    "url": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
                   }
                 ]
               }
             }
           ]
-        }' \${{ secrets.TEAMS_WEBHOOK_URL }}
+        }' "$TEAMS_WEBHOOK_URL"
 
   deploy-pages:
     needs: automation-execution
