@@ -79,10 +79,10 @@ jobs:
                 "body": [
                   {
                     "type": "TextBlock",
-                    "text": "🚨 Playwright E2E Regression Failed 🚨",
+                    "text": "Playwright E2E run: ${{ job.status }}",
                     "weight": "Bolder",
                     "size": "Medium",
-                    "color": "Attention"
+                    "color": "${{ job.status == 'success' && 'Good' || 'Attention' }}"
                   },
                   {
                     "type": "FactSet",
@@ -95,7 +95,7 @@ jobs:
                   },
                   {
                     "type": "TextBlock",
-                    "text": "Action items required: Review failing step visual snapshots, traces, or network interceptions in the artifacts below.",
+                    "text": "Open the workflow run for test results, logs, and artifacts.",
                     "wrap": true
                   }
                 ],
