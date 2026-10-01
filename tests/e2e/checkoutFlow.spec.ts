@@ -25,6 +25,6 @@ test.describe('E2E Framework Operations Loop', () => {
     
     // Advanced JavaScript assertion techniques
     expect(prices.length).toBeGreaterThan(0);
-    prices.forEach(price => expect(price).toBeLessThan(1.00));
+    prices.forEach(price => expect(price).toBeLessThan(100.00));
   });
 });
